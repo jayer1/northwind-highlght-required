@@ -1,0 +1,211 @@
+﻿@using Northwind.Models
+@using Northwind.Models.ViewModels
+@model OrderListViewModel
+
+<br />
+<div>
+    <div class="btn-group" id="Options" name="Options" role="group" aria-label="Basic example">
+        <button type="button" class="btn btn-secondary" id="requiredNext7" name="requiredNext7">Ship in 7 Days</button>
+        <button type="button" class="btn btn-secondary" id="requiredToday" name="requiredToday">Ship Today</button>
+        <button type="button" class="btn btn-secondary" id="overdue" name="overdue">Overdue</button>
+        <button type="button" class="btn btn-secondary" id="all" name="all">View All</button>
+    </div>
+    <br /><br />
+
+    <table class="table table-hover" id="content">
+        <thead>
+            <tr>
+                <th scope="col">Order ID</th>
+                <th scope="col" class="text-center">Customer</th>
+                <th scope="col" class="text-center">Order Date</th>
+                <th scope="col" class="text-center">Shipped Date</th>
+                <th scope="col" class="text-center">Required Date</th>
+            </tr>
+        </thead>
+        <tbody id="order_table">
+        </tbody>
+    </table>
+    <div class="row mb-3" id="paging">
+        <div class="col">
+            <button disabled id="first" class="btn btn-outline-secondary" type="button"><i class="fas fa-angle-double-left"></i><span class="d-none d-md-inline"> First</span></button>
+            <button disabled id="prev" class="btn btn-outline-secondary" type="button"><i class="fas fa-angle-left"></i><span class="d-none d-md-inline"> Prev</span></button>
+        </div>
+        <div class="col text-center text-secondary">
+            <span id="start">##</span>-<span id="end">##</span>
+            of
+            <span id="total">##</span>
+            <div id="current" class="d-none" data-val=""></div>
+        </div>
+        <div class="col text-right">
+            <button disabled id="next" class="btn btn-outline-secondary" type="button"><span class="d-none d-md-inline">Next </span><i class="fas fa-angle-right"></i></button>
+            <button disabled id="last" class="btn btn-outline-secondary"><span class="d-none d-md-inline">Last </span><i class="fas fa-angle-double-right"></i></button>
+        </div>
+    </div>
+ 
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    @section scripts
+        {
+        <script>
+            var url = "";
+            var currDate = new Date().toISOString().slice(0, 10);
+
+            $(function () {
+                // event listeners for first/next/prev/last buttons
+                $('#next, #prev, #first, #last').on('click', function () {
+                   getOrders($(this).data('page'));
+                    console.log($(this).data('page'));
+                });
+                function showTableBody(response) {
+                    var html = "";
+                    console.log(response.orders.length);
+
+                    for (var i = 0; i < response.orders.length; i++) {
+                        var red = (response.orders[i].required < currDate && response.orders[i].shipped == "0001-01-01T00:00:00") ? "style='color:red;'" : "";
+                        var myShip = response.orders[i].shipped == "0001-01-01T00:00:00" ? "Not yet shipped1" : response.orders[i].shipped.substring(0, 10);
+                        var trimOD = response.orders[i].order.substring(0, 10);
+                        var trimRD = response.orders[i].required.substring(0, 10);
+                        html += "<tr>";
+                        html += "<td>" + response.orders[i].id + "</td>";
+                        html += "<td class=\"text-center\">" + response.orders[i].cust + "</td>";
+                        html += "<td class=\"text-center\">" + trimOD + "</td>";
+                        html += "<td class=\"text-center\">" + myShip + "</td>";
+                        html += "<td class=\"text-center\"" + red + ">" + trimRD + "</td>";
+
+                        html += "</tr>";
+                    }
+                    console.log(html);
+                    $('#order_table').html(html);
+                }
+
+                function showOtherTableBody(response) {
+                    var html = "";
+                    console.log(response.orders);
+
+                    for (var i = 0; i < response.orders.length; i++) {
+                        var myShip = response.orders[i].shipped == "0001-01-01T00:00:00" ? "Not yet shipped" : response.orders[i].shipped.substring(0, 10);
+                        var trimOD = response.orders[i].order.substring(0, 10);
+                        var trimRD = response.orders[i].required.substring(0, 10);
+                        html += "<tr>";
+                        html += "<td>" + response.orders[i].id + "</td>";
+                        html += "<td class=\"text-center\">" + response.orders[i].cust + "</td>";
+                        html += "<td class=\"text-center\">" + trimOD + "</td>";
+                        html += "<td class=\"text-center\">" + myShip + "</td>";
+                        html += "<td class=\"text-center\">" + trimRD + "</td>";
+
+                        html += "</tr>";
+                    }
+                    console.log(html);
+                    $('#order_table').html(html);
+                }
+
+
+
+
+                function showPagingInfo(p) {
+                    console.log(p);
+                    $('#start').html(p.rangeStart);
+                    $('#end').html(p.rangeEnd);
+                    $('#total').html(p.totalItems);
+                    $('#first').data('page', 1);
+                    $('#next').data('page', p.nextPage);
+                    $('#prev').data('page', p.previousPage);
+                    $('#last').data('page', p.totalPages);
+                    $('#current').data('val', p.currentPage);
+                }
+                function initButtons() {
+                    // disable prev/first buttons when on first page
+                    $('#first, #prev').prop('disabled', $('#start').html() == "1");
+                    // disable next/last buttons when on last page
+                    $('#last, #next').prop('disabled', $('#end').html() == $('#total').html());
+                }
+                getOrders(page = 1);
+                $('#all').on('click', function () {
+                    $('#paging').css('visibility', 'visible');
+                    page = 1;
+                    getOrders(page);
+                });
+                
+                $('#requiredNext7').on('click', function () {
+                    $('#paging').css('visibility', 'hidden');
+                    url = "/required/7";
+                    getOtherOrders(url);
+                });
+
+
+                $('#requiredToday').on('click', function () {
+                    $('#paging').css('visibility', 'hidden');
+                    url = "/required/today"   
+                    getOtherOrders(url);
+
+                });
+
+                $('#overdue').on('click', function () {
+                    $('#paging').css('visibility', 'hidden');
+                    url = "/required/overdue";
+                    getOtherOrders(url);
+                });
+
+
+                function getOrders(page) {
+                    console.log("/api/order/page" + page);
+                    $.getJSON({
+                        url: "../../api/order/page" + page, // This is how you bring in the JSON request (how to filter)
+                        success: function (response, textStatus, jqXhr) {
+                            console.log(response);
+                            showTableBody(response);
+                            showPagingInfo(response.pagingInfo);
+                            initButtons();
+                            // Show content
+                            $('#content').show();
+
+
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            // log the error to the console
+                            console.log("The following error occured: " + textStatus, errorThrown);
+                        }
+                    });
+                }
+
+                function getOtherOrders(url) {
+                    $.getJSON({
+                        url: "../../api/order" + url, // This is how you bring in the JSON request (how to filter)
+                        success: function (response, textStatus, jqXhr) {
+                            console.log(response);
+                            //showOtherTableBody(response);
+                            
+                            // Show content
+                            $('#content').show();
+                            var html = "";
+                            console.log("Current date is " + currDate);
+                            
+                            for (var i = 0; i < response.length; i++) {
+                                var red = (response[i].requiredDate < currDate && response[i].shippedDate == null) ? "style='color:red;'" : "";
+                                //var red = "style='color:red;'";
+                                console.log("Required Date " + response[i].requiredDate + " CurrDate " + currDate + " " + red);
+                                var row = "<tr>"
+                                    + "<td>" + response[i].orderID + "</td>"
+                                    + "<td class=\"text-center\">" + response[i].shipName + "</td>"
+                                    + "<td class=\"text-center\">" + (response[i].orderDate).substring(0, 10) + "</td>"
+                                    + "<td class=\"text-center\">" + ((response[i].shippedDate == null) ? "Not yet shipped" : response[i].shippedDate) + "</td>"
+                                    + "<td class=\"text-center\"" + red +">" + (response[i].requiredDate).substring(0, 10) + "</td>"
+                                        
+                                    + "</tr>";
+                                html += row;
+                            }
+                            $('#order_table').html(html);
+    
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            // log the error to the console
+                            console.log("The following error occured: " + textStatus, errorThrown);
+
+                        }
+                    });
+                }
+            });</script>
+    }
+
+</div>

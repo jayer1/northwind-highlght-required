@@ -1,0 +1,52 @@
+﻿
+
+<label for="discontinued">Discontinued</label>
+<input type="checkbox" name="discontinued" id="discontinued" />
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th scope="col">Product</th>
+            <th scope="col" class="text-right">Price</th>
+            <th scope="col" class="text-right">Stock</th>
+        </tr>
+    </thead>
+    <tbody id="product_table" data-id="@ViewBag.id"></tbody>
+</table>
+
+@section scripts
+    {
+    <script>
+    // Turn off ESLint (Windows): Tools - Options - Text Editor - Javascript - Linting
+        $(function () {
+            $('#discontinued').on('change', function () {
+                getProducts();
+            });
+
+        getProducts()
+        function getProducts() {
+            var id = $('#product_table').data('id');
+            var discontinued = $('#discontinued').prop('checked') ? "true" : "false";
+            
+            $.getJSON({
+                url: "../../api/category/" + id + "/product/discontinued/" + discontinued, // This is how you bring in the JSON request (how to filter)
+                success: function (response, textStatus, jqXhr) {
+                    //console.log(response);
+                    $('#product_table').html("");
+                    for (var i = 0; i < response.length; i++) {
+                        var row = "<tr>"
+                            + "<td>" + response[i].productName + "</td>"
+                            + "<td class=\"text-right\">$" + response[i].unitPrice.toFixed(2) + "</td>"
+                            + "<td class=\"text-right\">" + response[i].unitsInStock + "</td>"
+                            + "</tr>";
+                        $('#product_table').append(row);
+                    }
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    // log the error to the console
+                    console.log("The following error occured: " + textStatus, errorThrown);
+                }
+            });
+        }
+    });
+    </script>
+}
